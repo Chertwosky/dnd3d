@@ -1,0 +1,228 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  PLAYER
+  GAME_MASTER
+  ADMIN
+}
+
+enum CampaignMemberRole {
+  PLAYER
+  GAME_MASTER
+  OBSERVER
+}
+
+enum CampaignMemberStatus {
+  INVITED
+  ACTIVE
+  LEFT
+  REMOVED
+}
+
+enum RuleEntryType {
+  ABILITY
+  SKILL
+  CLASS
+  RACE
+  SPELL
+  ITEM
+  RULE
+}
+
+enum AssetType {
+  IMAGE
+  MAP
+  TOKEN
+  AVATAR
+  MODEL_3D
+  DOCUMENT
+  OTHER
+}
+
+model User {
+  id             String           @id @default(uuid()) @db.Uuid
+  email          String           @unique
+  name           String?
+  passwordHash   String?          @map("password_hash")
+  role           UserRole         @default(PLAYER)
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+  campaignsOwned Campaign[]       @relation("CampaignOwner")
+  memberships    CampaignMember[]
+  characters     Character[]
+  assets         Asset[]          @relation("AssetUploader")
+
+  @@map("users")
+}
+
+model Campaign {
+  id          String           @id @default(uuid()) @db.Uuid
+  ownerId     String           @map("owner_id") @db.Uuid
+  name        String
+  description String?
+  isArchived  Boolean          @default(false) @map("is_archived")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+  owner       User             @relation("CampaignOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members     CampaignMember[]
+  characters  Character[]
+  maps        Map[]
+  ruleEntries RuleEntry[]
+  assets      Asset[]
+
+  @@index([ownerId])
+  @@map("campaigns")
+}
+
+model CampaignMember {
+  id          String               @id @default(uuid()) @db.Uuid
+  campaignId  String               @map("campaign_id") @db.Uuid
+  userId      String               @map("user_id") @db.Uuid
+  characterId String?              @map("character_id") @db.Uuid
+  role        CampaignMemberRole   @default(PLAYER)
+  status      CampaignMemberStatus @default(INVITED)
+  joinedAt    DateTime?            @map("joined_at")
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+  campaign    Campaign             @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  character   Character?           @relation(fields: [characterId], references: [id], onDelete: SetNull)
+
+  @@unique([campaignId, userId])
+  @@index([userId])
+  @@index([characterId])
+  @@map("campaign_members")
+}
+
+model Character {
+  id             String           @id @default(uuid()) @db.Uuid
+  ownerId        String           @map("owner_id") @db.Uuid
+  campaignId     String?          @map("campaign_id") @db.Uuid
+  name           String
+  race           String?
+  className      String?          @map("class_name")
+  level          Int              @default(1)
+  experience     Int              @default(0)
+  armorClass     Int?             @map("armor_class")
+  initiative     Int?
+  speed          Int?
+  maxHitPoints   Int?             @map("max_hit_points")
+  currentHitPoints Int?           @map("current_hit_points")
+  temporaryHitPoints Int?         @map("temporary_hit_points")
+  abilities      Json             @default("{}")
+  skills         Json             @default("{}")
+  savingThrows   Json             @default("{}") @map("saving_throws")
+  attacks        Json             @default("[]")
+  spells         Json             @default("[]")
+  equipment      Json             @default("[]")
+  notes          String?
+  avatarAssetId  String?          @map("avatar_asset_id") @db.Uuid
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+  owner          User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  campaign       Campaign?        @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  avatarAsset    Asset?           @relation("CharacterAvatar", fields: [avatarAssetId], references: [id], onDelete: SetNull)
+  memberships    CampaignMember[]
+  tokens         Token[]
+
+  @@index([ownerId])
+  @@index([campaignId])
+  @@index([avatarAssetId])
+  @@map("characters")
+}
+
+model Map {
+  id             String    @id @default(uuid()) @db.Uuid
+  campaignId     String    @map("campaign_id") @db.Uuid
+  assetId        String?   @map("asset_id") @db.Uuid
+  name           String
+  description    String?
+  width          Int       @default(1000)
+  height         Int       @default(1000)
+  gridSize       Int       @default(50) @map("grid_size")
+  backgroundColor String   @default("#f3f4f6") @map("background_color")
+  isActive       Boolean   @default(false) @map("is_active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  campaign       Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  asset          Asset?    @relation("MapBackground", fields: [assetId], references: [id], onDelete: SetNull)
+  tokens         Token[]
+
+  @@index([campaignId])
+  @@index([assetId])
+  @@map("maps")
+}
+
+model Token {
+  id          String     @id @default(uuid()) @db.Uuid
+  mapId       String     @map("map_id") @db.Uuid
+  characterId String?    @map("character_id") @db.Uuid
+  assetId     String?    @map("asset_id") @db.Uuid
+  name        String
+  color       String     @default("#ef4444")
+  x           Float      @default(0)
+  y           Float      @default(0)
+  zIndex      Int        @default(0) @map("z_index")
+  size        Float      @default(1)
+  rotation    Float      @default(0)
+  isVisible   Boolean    @default(true) @map("is_visible")
+  gmNotes     String?    @map("gm_notes")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+  map         Map        @relation(fields: [mapId], references: [id], onDelete: Cascade)
+  character   Character? @relation(fields: [characterId], references: [id], onDelete: SetNull)
+  asset       Asset?     @relation("TokenImage", fields: [assetId], references: [id], onDelete: SetNull)
+
+  @@index([mapId])
+  @@index([characterId])
+  @@index([assetId])
+  @@map("tokens")
+}
+
+model RuleEntry {
+  id          String        @id @default(uuid()) @db.Uuid
+  campaignId  String?       @map("campaign_id") @db.Uuid
+  type        RuleEntryType
+  slug        String
+  name        String
+  description String?
+  sourceUrl   String?       @map("source_url")
+  data        Json          @default("{}")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  campaign    Campaign?     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([type, slug])
+  @@index([campaignId])
+  @@map("rule_entries")
+}
+
+model Asset {
+  id                      String      @id @default(uuid()) @db.Uuid
+  campaignId              String?     @map("campaign_id") @db.Uuid
+  uploadedById            String?     @map("uploaded_by_id") @db.Uuid
+  type                    AssetType
+  name                    String
+  url                     String
+  mimeType                String?     @map("mime_type")
+  sizeBytes               Int?        @map("size_bytes")
+  metadata                Json        @default("{}")
+  createdAt               DateTime    @default(now()) @map("created_at")
+  updatedAt               DateTime    @updatedAt @map("updated_at")
+  campaign                Campaign?   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  uploadedBy              User?       @relation("AssetUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  characterAvatars        Character[] @relation("CharacterAvatar")
+  mapBackgrounds          Map[]       @relation("MapBackground")
+  tokenImages             Token[]     @relation("TokenImage")
+
+  @@index([campaignId])
+  @@index([uploadedById])
+  @@map("assets")
+}
