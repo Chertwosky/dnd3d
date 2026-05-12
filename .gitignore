@@ -2,6 +2,13 @@ node_modules/
 dist/
 .env
 .DS_Store
+.next/
+coverage/
+.env
+.env.local
+npm-debug.log*
+
+*.tsbuildinfo
 node_modules
 .next
 .env

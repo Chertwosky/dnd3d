@@ -20,6 +20,27 @@
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
+  "description": "Monorepo for DnD 3D web and API applications.",
+  "scripts": {
+    "dev": "npm run dev:web & npm run dev:api",
+    "dev:web": "npm run dev -w @dnd3d/web",
+    "dev:api": "npm run dev -w @dnd3d/api",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "typescript": "^5.5.4"
+  },
+  "engines": {
+    "node": ">=20.11.0",
+    "npm": ">=10.0.0"
   "scripts": {
     "dev": "next dev",
     "build": "next build",
