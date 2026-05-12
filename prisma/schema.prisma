@@ -225,4 +225,16 @@ model Asset {
   @@index([campaignId])
   @@index([uploadedById])
   @@map("assets")
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
