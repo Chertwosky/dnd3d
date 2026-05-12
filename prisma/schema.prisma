@@ -103,41 +103,38 @@ model CampaignMember {
 
 model Character {
   id             String           @id @default(uuid()) @db.Uuid
-  ownerId        String           @map("owner_id") @db.Uuid
+  userId         String           @map("user_id") @db.Uuid
   campaignId     String?          @map("campaign_id") @db.Uuid
   name           String
-  race           String?
-  className      String?          @map("class_name")
+  edition        String           @default("dnd-5e")
   level          Int              @default(1)
+  className      String?          @map("class_name")
+  subclassName   String?          @map("subclass_name")
+  raceName       String?          @map("race_name")
+  background     String?
+  alignment      String?
   experience     Int              @default(0)
-  armorClass     Int?             @map("armor_class")
-  initiative     Int?
-  speed          Int?
-  maxHitPoints   Int?             @map("max_hit_points")
-  currentHitPoints Int?           @map("current_hit_points")
-  temporaryHitPoints Int?         @map("temporary_hit_points")
-  abilities      Json             @default("{}")
+  stats          Json             @default("{}")
   skills         Json             @default("{}")
-  savingThrows   Json             @default("{}") @map("saving_throws")
-  attacks        Json             @default("[]")
+  saves          Json             @default("{}")
+  vitality       Json             @default("{}")
   spells         Json             @default("[]")
-  equipment      Json             @default("[]")
-  notes          String?
-  avatarAssetId  String?          @map("avatar_asset_id") @db.Uuid
+  items          Json             @default("[]")
+  notes          Json             @default("{}")
+  avatar         String?
+  rawJson        Json             @default("{}") @map("raw_json")
+  normalizedData Json             @default("{}") @map("normalized_data")
   createdAt      DateTime         @default(now()) @map("created_at")
   updatedAt      DateTime         @updatedAt @map("updated_at")
-  owner          User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   campaign       Campaign?        @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  avatarAsset    Asset?           @relation("CharacterAvatar", fields: [avatarAssetId], references: [id], onDelete: SetNull)
   memberships    CampaignMember[]
   tokens         Token[]
 
-  @@index([ownerId])
+  @@index([userId])
   @@index([campaignId])
-  @@index([avatarAssetId])
   @@map("characters")
 }
-
 model Map {
   id             String    @id @default(uuid()) @db.Uuid
   campaignId     String    @map("campaign_id") @db.Uuid
@@ -218,23 +215,10 @@ model Asset {
   updatedAt               DateTime    @updatedAt @map("updated_at")
   campaign                Campaign?   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   uploadedBy              User?       @relation("AssetUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
-  characterAvatars        Character[] @relation("CharacterAvatar")
   mapBackgrounds          Map[]       @relation("MapBackground")
   tokenImages             Token[]     @relation("TokenImage")
 
   @@index([campaignId])
   @@index([uploadedById])
   @@map("assets")
-enum Role {
-  USER
-  ADMIN
-}
-
-model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  role         Role     @default(USER)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
 }
