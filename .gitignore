@@ -7,3 +7,13 @@ coverage/
 npm-debug.log*
 
 *.tsbuildinfo
+node_modules
+.next
+.env
+.env.local
+.env.*.local
+coverage
+dist
+.DS_Store
+
+tsconfig.tsbuildinfo
